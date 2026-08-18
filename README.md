@@ -5,7 +5,7 @@
 </picture>
 
 <p align="center">
-  <a href="https://linkedin.com/in/muhammad-ali-khan"><img alt="LinkedIn" src="https://img.shields.io/badge/LinkedIn-muhammad--ali--khan-7c9cff?style=flat-square&logo=linkedin&logoColor=white&labelColor=0b0f14"></a>
+  <a href="https://www.linkedin.com/in/muhammad-ali-khan-7a3464216"><img alt="LinkedIn" src="https://img.shields.io/badge/LinkedIn-muhammad--ali--khan-7c9cff?style=flat-square&logo=linkedin&logoColor=white&labelColor=0b0f14"></a>
   &nbsp;
   <a href="mailto:alikhan232002@gmail.com"><img alt="Email" src="https://img.shields.io/badge/Email-alikhan232002%40gmail.com-5eead4?style=flat-square&logo=gmail&logoColor=white&labelColor=0b0f14"></a>
   &nbsp;
