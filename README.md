@@ -13,29 +13,47 @@
 </p>
 
 <p align="center">
-  <b>I work on generative models (flow matching, discrete diffusion, GFlowNets) and on the reinforcement learning that steers them.</b><br>
+  <b>I work on generative models — flow matching, discrete diffusion, GFlowNets — and on the reinforcement learning that steers them.</b><br>
   <sub>MSc at UCL (predicted Distinction) · First-class BSc from KCL · two NeurIPS workshop submissions in preparation</sub>
 </p>
 
 <br>
 
-## Sample Work
+## Sample work
+
+### Flow matching: what the coupling costs you
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ak0345/ak0345/renders/flow_dark.gif" width="100%" alt="Two panels comparing independent and optimal-transport couplings transporting a Gaussian into caffeine">
+</p>
+
+Flow matching pins down the marginals but leaves the pairing of noise to data
+free. Both panels transport the same Gaussian onto the same molecule with the
+same seed; only the coupling differs. Colour tracks each particle's starting
+angle, so the shredded colour wheel on the left *is* the conditional averaging
+the network is forced to do — and it is why that model needs far more
+integration steps to sample cleanly. Re-rendered weekly by CI, inference only.
+
+<sub>**PyTorch · minibatch OT · rdkit · GitHub Actions**</sub> &nbsp;
+<a href="https://github.com/ak0345/ak0345/tree/main/flow-matching-2d">Code, derivation and the NFE ablation →</a>
 
 <table>
 <tr>
 <td width="50%" valign="top">
 
-### Flow Matching in 2D
+### Flow matching on a manifold
 
-<img src="assets/flow_dark.gif" width="100%" alt="Particles transported from a Gaussian into a four-mode mixture">
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ak0345/ak0345/renders/sphere_dark.gif" width="94%" alt="Particles flowing across a rotating globe into an icosahedral constellation">
+</p>
 
-Simulation-free flow matching transporting a standard Gaussian onto a four-mode
-mixture. A scheduled GitHub Action re-solves the ODE with a fresh batch of
-particles every morning, so this animation is generated, not stored.
+Riemannian flow matching on $S^2$: geodesic probability paths, a tangent-space
+network, and integration by exponential map. Uniform on the sphere to twelve von
+Mises–Fisher modes.
 
-<sub>**PyTorch · GitHub Actions · headless Matplotlib**</sub>
+<sub>**Riemannian geometry · PyTorch**</sub>
 
-<a href="https://github.com/ak0345/ak0345/tree/main/flow-matching-2d">Read the code →</a>
+<a href="https://github.com/ak0345/ak0345/tree/main/flow-matching-sphere">Read the code →</a>
 
 </td>
 <td width="50%" valign="top">
@@ -48,9 +66,9 @@ particles every morning, so this animation is generated, not stored.
   <img src="assets/remdm-preview-dark.svg" width="100%" alt="Schematic of any-order masked diffusion decoding with a remasking step">
 </picture>
 
-An interactive Space that writes text **out of order** — filling high-confidence
-tokens first, then remasking and resampling the ones it got wrong. Side by side
-with left-to-right decoding, so you can see what remasking actually buys.
+An interactive Space that writes text **out of order** — committing
+high-confidence tokens first, then remasking and resampling the ones it got
+wrong, side by side with left-to-right decoding.
 
 <sub>**Discrete diffusion · Gradio · Hugging Face Spaces**</sub>
 
