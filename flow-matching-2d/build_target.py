@@ -4,7 +4,7 @@ The mask is committed to the repo, so training and CI never depend on rdkit -
 it is only needed here, if you want to swap the molecule.
 
     pip install rdkit
-    python build_target.py --smiles "CN1C=NC2=C1C(=O)N(C)C(=O)N2C" --out targets/caffeine.png
+    python3 build_target.py --smiles "CN1C=NC2=C1C(=O)N(C)C(=O)N2C" --out targets/caffeine.png
 """
 
 import argparse

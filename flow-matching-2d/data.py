@@ -1,5 +1,8 @@
 """Base and target distributions for the 2D flow-matching demo."""
 
+# Defer annotation evaluation so `str | None` parses on Python 3.9.
+from __future__ import annotations
+
 import math
 from pathlib import Path
 

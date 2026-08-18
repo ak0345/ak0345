@@ -31,7 +31,7 @@ def parse_args():
     p.add_argument("--hidden", type=int, default=256)
     p.add_argument("--depth", type=int, default=5)
     p.add_argument("--time-dim", type=int, default=128)
-    p.add_argument("--kappa", type=float, default=60.0, help="mode concentration")
+    p.add_argument("--kappa", type=float, default=50.0, help="mode concentration")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--out", type=str, default="checkpoints/sphere.pt")
     p.add_argument("--log-every", type=int, default=500)
