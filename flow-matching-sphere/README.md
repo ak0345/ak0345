@@ -47,6 +47,31 @@ The geometry is verified rather than assumed: tangency $\langle x_t, \dot{x}_t
 endpoints hold to machine precision, and exponential-map Euler retraces an exact
 great circle to $\sim10^{-15}$.
 
+## The coupling is not optional here
+
+In $\mathbb{R}^n$ the pairing of $x_0$ with $x_1$ is a performance choice — it
+changes how many integration steps you need. On a compact manifold with a
+symmetric target it decides whether the problem is learnable at all.
+
+Averaged over twelve icosahedrally arranged modes, the expected direction from
+any point on the sphere cancels almost exactly. Independent pairing therefore
+hands the network a marginal field that is close to zero nearly everywhere, with
+all the structure compressed into $t \to 1$. The model converges within a few
+hundred steps to predicting nothing, and the loss stalls. Measured at $t = 0.5$
+on a batch of 8192:
+
+| | independent | geodesic OT |
+| --- | --- | --- |
+| mean pairing angle | 89.7° | **16.4°** |
+| loss of a zero predictor | 2.913 | **0.098** |
+| within-region velocity spread | 0.967 | **0.171** |
+
+Pairing each minibatch by squared *geodesic* distance — the angle between
+points, not the chord — leaves a sharp local field a small MLP fits easily.
+`--coupling independent` is kept so the degenerate case can be reproduced; it is
+a cleaner demonstration of why coupling matters than anything in the flat case,
+because it fails outright rather than merely costing steps.
+
 ## Model
 
 | | |
@@ -55,6 +80,7 @@ great circle to $\sim10^{-15}$.
 | Time conditioning | Sinusoidal embedding (128-dim) → 2-layer MLP |
 | Base | Uniform on $S^2$ |
 | Target | 12 vMF modes, $\kappa = 60$, at icosahedron vertices |
+| Coupling | Minibatch geodesic OT, blocks of 256 |
 | Sampling | Exponential-map Euler, 80 steps |
 
 ## Usage
@@ -63,6 +89,9 @@ great circle to $\sim10^{-15}$.
 pip install -r requirements.txt        # macOS: install torch directly, see below
 
 python train.py --steps 8000 --out checkpoints/sphere.pt
+
+# Reproduce the degenerate case: loss stalls near 2.9 and never recovers.
+python train.py --steps 2000 --coupling independent --out /tmp/degenerate.pt
 python render.py --checkpoint checkpoints/sphere.pt --out ../out/sphere_dark.gif
 ```
 
@@ -74,6 +103,7 @@ On macOS install `torch numpy matplotlib pillow` directly.
 | File | Purpose |
 | --- | --- |
 | `geometry.py` | Exp/log maps, geodesics, vMF sampling, icosahedral modes |
+| `coupling.py` | Independent and geodesic-OT pairings |
 | `model.py` | `SphereField` with tangent projection |
 | `train.py` | Riemannian flow matching training loop |
 | `render.py` | Manifold integration, orthographic globe, seamless rotation |

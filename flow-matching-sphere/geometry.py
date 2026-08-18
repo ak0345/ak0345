@@ -79,8 +79,16 @@ def sample_vmf(mu: torch.Tensor, kappa: float, n: int, generator=None) -> torch.
     rejection loop is needed.
     """
     device = mu.device
-    u = torch.rand(n, 1, device=device, generator=generator)
-    w = 1 + torch.log(u + (1 - u) * math.exp(-2 * kappa)) / kappa
+
+    # The polar weight is computed in float64 on purpose. For kappa > ~44,
+    # exp(-2*kappa) underflows to zero in float32 - and that term is exactly
+    # what bounds the logarithm. Lose it and a uniform draw of 0.0 (which
+    # torch.rand does return, with probability 2^-24) gives w = -inf, which
+    # normalises to NaN and silently poisons training a few thousand steps in.
+    u = torch.rand(n, 1, device=device, generator=generator, dtype=torch.float64)
+    tail = math.exp(-2 * kappa)                     # exact in float64
+    w = 1 + torch.log(u + (1 - u) * tail) / kappa
+    w = w.clamp(-1.0, 1.0).to(mu.dtype)             # belt and braces
 
     angle = torch.rand(n, 1, device=device, generator=generator) * 2 * math.pi
     r = torch.sqrt((1 - w ** 2).clamp_min(0))

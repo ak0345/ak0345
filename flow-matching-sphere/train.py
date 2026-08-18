@@ -19,6 +19,7 @@ from pathlib import Path
 
 import torch
 
+from coupling import get_coupling
 from geometry import SphereMixture, geodesic, sample_uniform
 from model import SphereField, save_checkpoint
 
@@ -31,7 +32,10 @@ def parse_args():
     p.add_argument("--hidden", type=int, default=256)
     p.add_argument("--depth", type=int, default=5)
     p.add_argument("--time-dim", type=int, default=128)
-    p.add_argument("--kappa", type=float, default=50.0, help="mode concentration")
+    p.add_argument("--kappa", type=float, default=60.0, help="mode concentration")
+    p.add_argument("--coupling", choices=["independent", "ot"], default="ot",
+                   help="'independent' is left in so the degenerate case can be reproduced")
+    p.add_argument("--ot-block", type=int, default=256)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--out", type=str, default="checkpoints/sphere.pt")
     p.add_argument("--log-every", type=int, default=500)
@@ -44,7 +48,12 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     target = SphereMixture(kappa=args.kappa, device=device)
-    print(f"device: {device} | target: {target.name} ({len(target.centers)} modes)")
+    couple = get_coupling(args.coupling)
+    print(f"device: {device} | target: {target.name} ({len(target.centers)} modes) "
+          f"| coupling: {args.coupling}")
+    if args.coupling == "independent":
+        print("warning: with a uniform base and a symmetric target this field is "
+              "near zero by symmetry; expect the loss to stall around 2.9")
 
     model = SphereField(hidden=args.hidden, depth=args.depth, time_dim=args.time_dim).to(device)
     print(f"parameters: {sum(p.numel() for p in model.parameters()):,}")
@@ -57,10 +66,17 @@ def main():
     for step in range(1, args.steps + 1):
         x0 = sample_uniform(args.batch_size, device=device)
         x1 = target.sample(args.batch_size, device=device)
+        x0, x1 = couple(x0, x1, block=args.ot_block)
         t = torch.rand(args.batch_size, device=device)
 
         xt, vt = geodesic(x0, x1, t)
         loss = (model(xt, t) - vt).pow(2).sum(-1).mean()
+
+        if not torch.isfinite(loss):
+            # Fail at the step it happens, not after the full run. A NaN here
+            # almost always means a bad sample reached the loss, not a bad
+            # learning rate - check the target sampler before touching --lr.
+            raise RuntimeError(f"loss became {loss.item()} at step {step}")
 
         opt.zero_grad(set_to_none=True)
         loss.backward()
@@ -79,7 +95,8 @@ def main():
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    save_checkpoint(model, str(out), steps=args.steps, final_loss=loss.item(), kappa=args.kappa)
+    save_checkpoint(model, str(out), steps=args.steps, final_loss=loss.item(),
+                    kappa=args.kappa, coupling=args.coupling)
     print(f"saved {out} ({out.stat().st_size / 1e6:.2f} MB) in {time.time() - start:.1f}s")
 
 
