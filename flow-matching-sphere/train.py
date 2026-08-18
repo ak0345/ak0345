@@ -20,7 +20,7 @@ from pathlib import Path
 import torch
 
 from coupling import get_coupling
-from geometry import SphereMixture, geodesic, sample_uniform
+from geometry import build_target, geodesic, sample_uniform
 from model import SphereField, save_checkpoint
 
 
@@ -32,7 +32,8 @@ def parse_args():
     p.add_argument("--hidden", type=int, default=256)
     p.add_argument("--depth", type=int, default=5)
     p.add_argument("--time-dim", type=int, default=128)
-    p.add_argument("--kappa", type=float, default=60.0, help="mode concentration")
+    p.add_argument("--target", choices=["ring", "icosahedron"], default="ring",
+                   help="'icosahedron' is symmetric and barely learnable - see the README")
     p.add_argument("--coupling", choices=["independent", "ot"], default="ot",
                    help="'independent' is left in so the degenerate case can be reproduced")
     p.add_argument("--ot-block", type=int, default=256)
@@ -47,13 +48,14 @@ def main():
     torch.manual_seed(args.seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    target = SphereMixture(kappa=args.kappa, device=device)
+    target = build_target(args.target, device=device)
     couple = get_coupling(args.coupling)
-    print(f"device: {device} | target: {target.name} ({len(target.centers)} modes) "
-          f"| coupling: {args.coupling}")
+    print(f"device: {device} | target: {target.name} | coupling: {args.coupling}")
+    if args.target == "icosahedron":
+        print("warning: the symmetric target exposes little learnable signal "
+              "(R^2 ~ 0.15-0.38 even under OT); the loss will stall")
     if args.coupling == "independent":
-        print("warning: with a uniform base and a symmetric target this field is "
-              "near zero by symmetry; expect the loss to stall around 2.9")
+        print("warning: independent pairing roughly halves the learnable signal")
 
     model = SphereField(hidden=args.hidden, depth=args.depth, time_dim=args.time_dim).to(device)
     print(f"parameters: {sum(p.numel() for p in model.parameters()):,}")
@@ -96,7 +98,7 @@ def main():
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     save_checkpoint(model, str(out), steps=args.steps, final_loss=loss.item(),
-                    kappa=args.kappa, coupling=args.coupling)
+                    target=args.target, coupling=args.coupling)
     print(f"saved {out} ({out.stat().st_size / 1e6:.2f} MB) in {time.time() - start:.1f}s")
 
 

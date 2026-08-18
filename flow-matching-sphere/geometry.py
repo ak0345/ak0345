@@ -105,7 +105,13 @@ def sample_vmf(mu: torch.Tensor, kappa: float, n: int, generator=None) -> torch.
 
 
 class SphereMixture:
-    """p_1: von Mises-Fisher modes at the vertices of an icosahedron."""
+    """von Mises-Fisher modes at icosahedron vertices.
+
+    Kept for reference, but NOT the default - see the README. Twelve
+    symmetrically arranged modes make the marginal field nearly unlearnable:
+    the destination of a point near a Voronoi boundary depends on the minibatch,
+    so even geodesic OT only exposes ~0.15-0.38 of the velocity signal.
+    """
 
     name = "icosahedron"
 
@@ -116,3 +122,59 @@ class SphereMixture:
     def sample(self, n: int, device="cpu", generator=None) -> torch.Tensor:
         idx = torch.randint(0, len(self.centers), (n,), device=device, generator=generator)
         return sample_vmf(self.centers.to(device)[idx], self.kappa, n, generator=generator)
+
+
+# Tilted so the ring cuts across the graticule rather than sitting on a
+# parallel - it reads as a band around the globe rather than a latitude line.
+RING_AXIS = (0.42, 0.18, 0.89)
+
+
+class SphereRing:
+    """A band at fixed angular radius from a tilted axis.
+
+    Breaking the symmetry is the point. A uniform base pushed towards a
+    rotationally symmetric target leaves a strong, single-valued marginal field:
+    ~0.86 of the velocity energy is explainable under geodesic OT, against 0.15
+    for the icosahedral mixture.
+    """
+
+    name = "ring"
+
+    def __init__(self, radius_deg: float = 55.0, width_deg: float = 5.0,
+                 axis=RING_AXIS, device="cpu"):
+        self.radius = math.radians(radius_deg)
+        self.width = math.radians(width_deg)
+        self.axis = normalize(torch.tensor(axis, dtype=torch.float32, device=device))
+
+        # Orthonormal frame spanning the plane the ring is drawn in.
+        helper = torch.tensor([0.0, 0.0, 1.0], device=device)
+        if abs(float(self.axis[2])) > 0.9:
+            helper = torch.tensor([1.0, 0.0, 0.0], device=device)
+        self.e1 = normalize(torch.cross(self.axis, helper, dim=-1))
+        self.e2 = torch.cross(self.axis, self.e1, dim=-1)
+
+    def sample(self, n: int, device="cpu", generator=None) -> torch.Tensor:
+        axis, e1, e2 = self.axis.to(device), self.e1.to(device), self.e2.to(device)
+
+        phi = torch.rand(n, 1, device=device, generator=generator) * 2 * math.pi
+        alpha = self.radius + self.width * torch.randn(n, 1, device=device, generator=generator)
+
+        return normalize(
+            torch.cos(alpha) * axis
+            + torch.sin(alpha) * (torch.cos(phi) * e1 + torch.sin(phi) * e2)
+        )
+
+    def phase(self, x: torch.Tensor) -> torch.Tensor:
+        """Angle around the ring axis, in [0, 1) - used to colour the render."""
+        e1, e2 = self.e1.to(x.device), self.e2.to(x.device)
+        ang = torch.atan2((x * e2).sum(-1), (x * e1).sum(-1))
+        return (ang / (2 * math.pi)) % 1.0
+
+
+TARGETS = {"ring": SphereRing, "icosahedron": SphereMixture}
+
+
+def build_target(kind: str, device="cpu", **kwargs):
+    if kind not in TARGETS:
+        raise ValueError(f"unknown target {kind!r}, expected one of {list(TARGETS)}")
+    return TARGETS[kind](device=device, **kwargs)

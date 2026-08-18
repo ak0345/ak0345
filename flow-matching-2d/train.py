@@ -77,6 +77,12 @@ def main():
 
         loss = (model(xt, t) - velocity).pow(2).mean()
 
+        if not torch.isfinite(loss):
+            # Fail at the step it happens, not after the full run. A NaN here
+            # almost always means a bad sample reached the loss, not a bad
+            # learning rate - check the target sampler before touching --lr.
+            raise RuntimeError(f"loss became {loss.item()} at step {step}")
+
         opt.zero_grad(set_to_none=True)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)

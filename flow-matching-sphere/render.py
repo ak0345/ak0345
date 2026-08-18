@@ -42,6 +42,7 @@ def parse_args():
     p.add_argument("--size", type=float, default=4.6)
     p.add_argument("--dpi", type=int, default=100)
     p.add_argument("--colors", type=int, default=64)
+    p.add_argument("--target", choices=["ring", "icosahedron"], default="ring")
     p.add_argument("--seed", type=int, default=None)
     return p.parse_args()
 
@@ -160,6 +161,11 @@ def render_globe(traj: np.ndarray, rgba: np.ndarray, out: str, frames=44,
     return out_path
 
 
+def phase_colors(phase: np.ndarray) -> np.ndarray:
+    """Cyclic colour around the ring, so the band reads as a continuous sweep."""
+    return plt.get_cmap("twilight_shifted")(phase)
+
+
 def mode_colors(final: np.ndarray, centers: np.ndarray) -> np.ndarray:
     idx = np.argmin(((final[:, None, :] - centers[None]) ** 2).sum(-1), axis=1)
     return plt.get_cmap("turbo")(idx / max(len(centers) - 1, 1))
@@ -169,7 +175,7 @@ def main():
     args = parse_args()
     import torch
 
-    from geometry import exp_map, icosahedron_vertices, sample_uniform
+    from geometry import build_target, exp_map, icosahedron_vertices, sample_uniform
     from model import load_checkpoint
 
     seed = args.seed if args.seed is not None else torch.seed() % (2**31)
@@ -188,7 +194,11 @@ def main():
             traj.append(x.numpy().copy())
     traj = np.stack(traj)
 
-    rgba = mode_colors(traj[-1], icosahedron_vertices().numpy())
+    target = build_target(args.target)
+    if hasattr(target, "phase"):
+        rgba = phase_colors(target.phase(torch.from_numpy(traj[-1])).numpy())
+    else:
+        rgba = mode_colors(traj[-1], icosahedron_vertices().numpy())
     out = render_globe(traj, rgba, args.out, frames=args.frames,
                        flow_fraction=args.flow_fraction, tilt=args.tilt,
                        fps=args.fps, size=args.size, dpi=args.dpi, colors=args.colors)

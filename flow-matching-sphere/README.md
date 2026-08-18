@@ -1,11 +1,11 @@
 # Riemannian Flow Matching on $S^2$
 
 Flow matching where the data lives on a manifold rather than in $\mathbb{R}^n$.
-A uniform distribution on the sphere is transported onto twelve von Mises–Fisher
-modes at the vertices of an icosahedron.
+A uniform distribution on the sphere is transported onto a tilted band cutting
+across the graticule.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/ak0345/ak0345/renders/sphere_dark.gif" width="460" alt="Particles flowing across a rotating globe into an icosahedral constellation">
+  <img src="https://raw.githubusercontent.com/ak0345/ak0345/renders/sphere_dark.gif" width="460" alt="Particles flowing across a rotating globe into a tilted band">
 </p>
 
 The globe completes exactly one revolution per loop, so the animation is
@@ -47,30 +47,33 @@ The geometry is verified rather than assumed: tangency $\langle x_t, \dot{x}_t
 endpoints hold to machine precision, and exponential-map Euler retraces an exact
 great circle to $\sim10^{-15}$.
 
-## The coupling is not optional here
+## Two things had to be true for this to train
 
-In $\mathbb{R}^n$ the pairing of $x_0$ with $x_1$ is a performance choice — it
-changes how many integration steps you need. On a compact manifold with a
-symmetric target it decides whether the problem is learnable at all.
+Riemannian flow matching on a compact manifold is easy to set up and easy to
+make unlearnable. Both failures below were measured before training anything, by
+binning $x_t$ and asking what fraction of the target velocity's energy is
+explainable by position alone — an upper bound on any model's $R^2$.
 
-Averaged over twelve icosahedrally arranged modes, the expected direction from
-any point on the sphere cancels almost exactly. Independent pairing therefore
-hands the network a marginal field that is close to zero nearly everywhere, with
-all the structure compressed into $t \to 1$. The model converges within a few
-hundred steps to predicting nothing, and the loss stalls. Measured at $t = 0.5$
-on a batch of 8192:
-
-| | independent | geodesic OT |
+| target | coupling | mean $R^2$ over $t$ |
 | --- | --- | --- |
-| mean pairing angle | 89.7° | **16.4°** |
-| loss of a zero predictor | 2.913 | **0.098** |
-| within-region velocity spread | 0.967 | **0.171** |
+| 12 icosahedral modes | independent | 0.04 |
+| 12 icosahedral modes | geodesic OT | 0.29 |
+| tilted ring | independent | 0.29 |
+| **tilted ring** | **geodesic OT** | **0.86** |
 
-Pairing each minibatch by squared *geodesic* distance — the angle between
-points, not the chord — leaves a sharp local field a small MLP fits easily.
-`--coupling independent` is kept so the degenerate case can be reproduced; it is
-a cleaner demonstration of why coupling matters than anything in the flat case,
-because it fails outright rather than merely costing steps.
+**The target must break symmetry.** Twelve modes in an icosahedral arrangement
+are close to isotropic, so the expected direction from any point very nearly
+cancels. Worse, a point near a Voronoi boundary between modes has a destination
+that depends on which minibatch it landed in, so the conditional field is
+genuinely multi-valued and no model can fit it. The loss parks at 2.913 — which
+is exactly $\mathbb{E}[\theta^2]$, the loss of predicting zero.
+
+**The coupling must be geodesic.** Pairing by squared angle rather than
+independently roughly triples the explainable signal, for the same reason as in
+the flat case: fewer crossing paths, less conditional averaging.
+
+Both failure modes are reproducible — `--target icosahedron` and
+`--coupling independent` are still there.
 
 ## Model
 
@@ -79,7 +82,7 @@ because it fails outright rather than merely costing steps.
 | Architecture | 5-layer MLP, width 256, SiLU, tangent projection at the output |
 | Time conditioning | Sinusoidal embedding (128-dim) → 2-layer MLP |
 | Base | Uniform on $S^2$ |
-| Target | 12 vMF modes, $\kappa = 60$, at icosahedron vertices |
+| Target | Band at 55° from a tilted axis, 5° width |
 | Coupling | Minibatch geodesic OT, blocks of 256 |
 | Sampling | Exponential-map Euler, 80 steps |
 
@@ -90,8 +93,8 @@ pip install -r requirements.txt        # macOS: install torch directly, see belo
 
 python train.py --steps 8000 --out checkpoints/sphere.pt
 
-# Reproduce the degenerate case: loss stalls near 2.9 and never recovers.
-python train.py --steps 2000 --coupling independent --out /tmp/degenerate.pt
+# Reproduce either failure: the loss stalls near 2.9 and never recovers.
+python train.py --steps 2000 --target icosahedron --out /tmp/degenerate.pt
 python render.py --checkpoint checkpoints/sphere.pt --out ../out/sphere_dark.gif
 ```
 
@@ -102,7 +105,7 @@ On macOS install `torch numpy matplotlib pillow` directly.
 
 | File | Purpose |
 | --- | --- |
-| `geometry.py` | Exp/log maps, geodesics, vMF sampling, icosahedral modes |
+| `geometry.py` | Exp/log maps, geodesics, vMF sampling, ring and mixture targets |
 | `coupling.py` | Independent and geodesic-OT pairings |
 | `model.py` | `SphereField` with tangent projection |
 | `train.py` | Riemannian flow matching training loop |
