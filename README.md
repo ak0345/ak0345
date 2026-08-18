@@ -13,13 +13,13 @@
 </p>
 
 <p align="center">
-  <b>I work on generative models — flow matching, discrete diffusion, GFlowNets — and on the reinforcement learning that steers them.</b><br>
+  <b>I work on generative models (flow matching, discrete diffusion, GFlowNets) and on the reinforcement learning that steers them.</b><br>
   <sub>MSc at UCL (predicted Distinction) · First-class BSc from KCL · two NeurIPS workshop submissions in preparation</sub>
 </p>
 
 <br>
 
-## Selected work
+## Sample Work
 
 <table>
 <tr>
@@ -69,10 +69,10 @@ with left-to-right decoding, so you can see what remasking actually buys.
 <td valign="top">
 
 **Where does reward steering stop working on a frozen molecular generative model?**
-Trained logit- and hidden-state GFlowNet guides under RTB/DB objectives against
+Trained logit and hidden-state GFlowNet guides under RTB/DB objectives against
 full-weight and LoRA fine-tuning on Quetzal / GEOM-Drugs, evaluated on GuacaMol
 MPO. Found a hard ceiling on achievable reward set by the pretraining
-distribution — and identified the mechanism that enforces it.
+distribution and identified the mechanism that enforces it.
 
 </td></tr>
 
@@ -83,7 +83,7 @@ ReMDM as a **non-myopic trajectory planner** across MiniHack and Craftax: an
 order-of-magnitude improvement over PPO, DQN and Decision Transformer baselines,
 with the strongest zero-shot OOD transfer of the set. A 25-condition ablation
 suite isolated a *double intractability* blocking RL fine-tuning of masked
-discrete diffusion — an analytically intractable log-likelihood, compounded by
+discrete diffusion which is an analytically intractable log-likelihood, compounded by
 non-discriminative reward surrogates under sparse rewards.
 
 </td></tr>
@@ -93,7 +93,7 @@ non-discriminative reward surrogates under sparse rewards.
 
 Built a full Settlers of Catan environment from scratch in PyTorch and trained
 DQN agents by self-play, scaling from a Mini-Catan simulator to the complete
-game. 88.9% win rate against random opponents — and, more interestingly, a
+game. 88.9% win rate against random opponents and more interestingly, a
 characterisation of *how* it collapses against stronger play, which is a
 readable argument for learned world models.
 
