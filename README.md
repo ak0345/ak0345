@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <b>I work on generative models — flow matching, discrete diffusion, GFlowNets — and on the reinforcement learning that steers them.</b><br>
+  <b>I work on generative models (flow matching, discrete diffusion, GFlowNets) and on the reinforcement learning that steers them.</b><br>
   <sub>MSc at UCL (predicted Distinction) · First-class BSc from KCL · two NeurIPS workshop submissions in preparation</sub>
 </p>
 
@@ -31,7 +31,7 @@ Flow matching pins down the marginals but leaves the pairing of noise to data
 free. Both panels transport the same Gaussian onto the same molecule with the
 same seed; only the coupling differs. Colour tracks each particle's starting
 angle, so the shredded colour wheel on the left *is* the conditional averaging
-the network is forced to do — and it is why that model needs far more
+the network is forced to do and it is why that model needs far more
 integration steps to sample cleanly. Re-rendered weekly by CI, inference only.
 
 <sub>**PyTorch · minibatch OT · rdkit · GitHub Actions**</sub> &nbsp;
@@ -150,7 +150,3 @@ nationwide spatio-temporal framework.
 <br>
 
 ---
-
-<p align="center">
-  <sub>Off the keyboard: high-performance rower at University of London Boat Club — 12+ sessions a week, which is its own lesson in scheduling under constraints.</sub>
-</p>
